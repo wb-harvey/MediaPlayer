@@ -16,6 +16,8 @@ ABX.MediaPlayer
 
 (4) has built in functionality to play a clip (from->to) instead of a whole file
 
+The included MediaTest project (vb.net 4.8) enables you to test the functionality of ABX.MediaPlayer (from source) and LibVlcSharp (from nuget).
+
 If you are a developer, this functionality might be useful for you.
 
 If you are a user, I highly recommend using VLC Media Player from https://videolan.org
