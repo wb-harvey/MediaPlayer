@@ -1,6 +1,4 @@
-This is the ABX.MediaPlayer
-Forked from PVS.MediaPlayer (1.6)
-Inspired by Media Foundation .NET
+This is the ABX.MediaPlayer, forked from PVS.MediaPlayer (1.6), inspired by Media Foundation .NET
 
 This LGPL library allows a .Net application to communicate directly to Windows Media Foundation to open media files (Audio and Video).
 
