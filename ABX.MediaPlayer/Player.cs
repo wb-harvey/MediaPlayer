@@ -5325,12 +5325,13 @@ namespace ABX.MediaPlayer
 
                 if (mf_MediaSession != null)
                 {
-                    mf_MediaSession.Close();
+                    // Capture the session reference before nulling it
+                    IMFMediaSession closingSession = mf_MediaSession;
                     
                     lock (_teardownStates)
                     {
                         _teardownStates.Add(new SessionTeardownState {
-                            Session = mf_MediaSession,
+                            Session = closingSession,
                             Source = mf_MediaSource,
                             WebcamAudio = _webcamAudioSource,
                             WebcamVideo = _webcamVideoSource,
@@ -5338,6 +5339,18 @@ namespace ABX.MediaPlayer
                         });
                     }
                     mf_MediaSession = null;
+
+                    // Dispatch Close() to a background thread to avoid STA deadlock.
+                    // IMFMediaSession.Close() can block on STA threads waiting for MF
+                    // pipeline threads to synchronize, causing a deadlock when those
+                    // threads need to marshal work back through the UI message pump.
+                    // The MESessionClosed callback in MF_PlayerCallBack.Invoke will
+                    // route to AV_ProcessSessionClosed for final Shutdown + Release.
+                    System.Threading.ThreadPool.QueueUserWorkItem(_ =>
+                    {
+                        try { closingSession.Close(); }
+                        catch { /* session may already be closing */ }
+                    });
                 }
 
                 if (mf_MediaSource != null)
