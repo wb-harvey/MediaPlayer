@@ -1233,7 +1233,7 @@ namespace ABX.MediaPlayer
 
             result.GetState(out object stateObj);
             IMFMediaSession session = stateObj as IMFMediaSession;
-            if (session == null) session = _base.mf_MediaSession;
+            if (session == null && _base != null) session = _base.mf_MediaSession;
             if (session == null) return HResult.MF_E_NOT_AVAILABLE;
 
             try
@@ -1241,6 +1241,12 @@ namespace ABX.MediaPlayer
                 session.EndGetEvent(result, out mediaEvent);
                 mediaEvent.GetType(out mediaEventType);
                 mediaEvent.GetStatus(out HResult errorCode);
+
+                if (_base == null)
+                {
+                    getNext = false;
+                    return 0;
+                }
 
                 if (_base._playing)
                 {
@@ -1282,16 +1288,19 @@ namespace ABX.MediaPlayer
                 if (getNext && mediaEventType != MediaEventType.MESessionClosed) session.BeginGetEvent(this, session);
                 if (mediaEvent != null) Marshal.ReleaseComObject(mediaEvent);
 
-                if (_base.mf_AwaitCallBack)
+                if (_base != null)
                 {
-                    _base.mf_AwaitCallBack = false;
-                    _base.WaitForEvent.Set();
-                }
-                _base.mf_AwaitDoEvents = false;
+                    if (_base.mf_AwaitCallBack)
+                    {
+                        _base.mf_AwaitCallBack = false;
+                        _base.WaitForEvent.Set();
+                    }
+                    _base.mf_AwaitDoEvents = false;
 
-                if (mediaEventType == MediaEventType.MESessionClosed)
-                {
-                    _base.AV_ProcessSessionClosed(session);
+                    if (mediaEventType == MediaEventType.MESessionClosed)
+                    {
+                        _base.AV_ProcessSessionClosed(session);
+                    }
                 }
             }
             return 0;
