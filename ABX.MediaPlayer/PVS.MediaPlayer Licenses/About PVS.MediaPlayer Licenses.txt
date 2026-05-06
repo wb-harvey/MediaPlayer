@@ -1,0 +1,12 @@
+﻿===================================================================
+About the PVS.MediaPlayer Licenses
+
+PVS.MediaPlayer Version 1.6
+© Copyright 2021 Peter Vegter
+===================================================================
+
+PVS.MediaPlayer was built using part of the Media Foundation .NET library by nowinskie and snarfle (https://sourceforge.net/projects/mfnet).
+Licensed under Lesser General Public License v2.1
+
+===================================================================
+© PVS The Netherlands - August 2021

@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Library</OutputType>
+    <TargetFramework>net48</TargetFramework>
+    <AssemblyName>MediaPlayer</AssemblyName>
+    <RootNamespace>ABX.MediaPlayer</RootNamespace>
+    <Nullable>disable</Nullable>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <AssemblyTitle>ABX.MediaPlayer</AssemblyTitle>
+    <AssemblyDescription>Media Player Library</AssemblyDescription>
+    <AssemblyCompany>PVS The Netherlands</AssemblyCompany>
+    <AssemblyProduct>ABX.MediaPlayer .NET 4.8</AssemblyProduct>
+    <AssemblyCopyright>© 2021 PVS The Netherlands</AssemblyCopyright>
+    <AssemblyVersion>1.6.0.0</AssemblyVersion>
+    <FileVersion>1.6.0.0</FileVersion>
+    <CLSCompliant>true</CLSCompliant>
+    <Optimize>true</Optimize>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Deterministic>true</Deterministic>
+    <!-- Suppress IDE warnings that are in the source pragma directives -->
+    <NoWarn>IDE0044</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+  </ItemGroup>
+
+</Project>
