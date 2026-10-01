@@ -1670,6 +1670,12 @@ namespace ABX.MediaPlayer
         }
 
         internal System.Collections.Generic.List<SessionTeardownState> _teardownStates = new System.Collections.Generic.List<SessionTeardownState>();
+
+        // Teardowns queued in AV_CloseSession and not yet finished, and a signal
+        // for each one that finishes (see AV_AwaitTeardowns)
+        internal int                                _teardownsPending;
+        internal readonly System.Threading.AutoResetEvent _teardownFinished = new System.Threading.AutoResetEvent(false);
+        internal const int                          TEARDOWN_WAIT_MS            = 2000;
         internal bool                               mf_LowLatency;
         internal IMFAttributes                      mf_SessionConfig;
         internal IMFAttributes                      mf_SessionConfigLowLatency;
@@ -4344,6 +4350,8 @@ namespace ABX.MediaPlayer
         {
             HResult result;
 
+            AV_AwaitTeardowns();
+
             if (mf_MediaSession == null)
             {
                 if (mf_LowLatency) MFExtern.MFCreateMediaSession(mf_SessionConfigLowLatency, out mf_MediaSession);
@@ -5337,7 +5345,16 @@ namespace ABX.MediaPlayer
                             WebcamVideo = _webcamVideoSource,
                             WebcamAggregated = _webcamAggregated
                         });
+                        System.Threading.Interlocked.Increment(ref _teardownsPending);
                     }
+
+                    // Listen for its MESessionClosed even when its event loop has
+                    // stopped (the media ended by itself or failed): without this,
+                    // AV_ProcessSessionClosed never ran for those, and the session
+                    // and source were never shut down. If the loop is still running,
+                    // this returns MF_E_MULTIPLE_BEGIN and changes nothing.
+                    closingSession.BeginGetEvent(mf_CallBack, closingSession);
+
                     mf_MediaSession = null;
 
                     // Dispatch Close() to a background thread to avoid STA deadlock.
@@ -5545,7 +5562,14 @@ namespace ABX.MediaPlayer
                 }
             }
 
-            if (state != null)
+            if (state != null) AV_ShutdownTeardownState(state);
+        }
+
+        // Shuts down and releases a closed (or closing) session and its source,
+        // then counts the teardown as finished
+        private void AV_ShutdownTeardownState(SessionTeardownState state)
+        {
+            try
             {
                 if (state.Source != null)
                 {
@@ -5564,6 +5588,38 @@ namespace ABX.MediaPlayer
                     Marshal.ReleaseComObject(state.Session);
                 }
             }
+            finally
+            {
+                System.Threading.Interlocked.Decrement(ref _teardownsPending);
+                _teardownFinished.Set();
+            }
+        }
+
+        // Opening a new source while the previous session's source is still
+        // being shut down on a Media Foundation thread (AV_ProcessSessionClosed)
+        // deadlocks the source resolver for MP3 files: CreateObjectFromURL never
+        // returns. So wait for pending teardowns to finish first. One that hasn't
+        // started within TEARDOWN_WAIT_MS (no MESessionClosed yet) is shut down
+        // here instead, as PVS.MediaPlayer did.
+        private void AV_AwaitTeardowns()
+        {
+            if (System.Threading.Volatile.Read(ref _teardownsPending) == 0) return;
+
+            int start = Environment.TickCount;
+            while (System.Threading.Volatile.Read(ref _teardownsPending) > 0 && Environment.TickCount - start < TEARDOWN_WAIT_MS)
+            {
+                _teardownFinished.WaitOne(10);
+            }
+
+            if (System.Threading.Volatile.Read(ref _teardownsPending) == 0) return;
+
+            System.Collections.Generic.List<SessionTeardownState> notStarted;
+            lock (_teardownStates)
+            {
+                notStarted = new System.Collections.Generic.List<SessionTeardownState>(_teardownStates);
+                _teardownStates.Clear();
+            }
+            foreach (SessionTeardownState state in notStarted) AV_ShutdownTeardownState(state);
         }
 
         internal void AV_ClearHold()

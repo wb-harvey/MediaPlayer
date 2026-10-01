@@ -1230,6 +1230,7 @@ namespace ABX.MediaPlayer
             IMFMediaEvent   mediaEvent      = null;
             MediaEventType  mediaEventType  = MediaEventType.MEUnknown;
             bool getNext = true;
+            bool oldSession = false;
 
             result.GetState(out object stateObj);
             IMFMediaSession session = stateObj as IMFMediaSession;
@@ -1238,13 +1239,27 @@ namespace ABX.MediaPlayer
 
             try
             {
-                session.EndGetEvent(result, out mediaEvent);
+                // Fails once the session has been shut down: stop listening
+                if (session.EndGetEvent(result, out mediaEvent) < 0 || mediaEvent == null)
+                {
+                    getNext = false;
+                    return 0;
+                }
                 mediaEvent.GetType(out mediaEventType);
                 mediaEvent.GetStatus(out HResult errorCode);
 
                 if (_base == null)
                 {
                     getNext = false;
+                    return 0;
+                }
+
+                // A session being torn down (AV_CloseSession): only its
+                // MESessionClosed matters (handled below); its other events must
+                // not act on the media now playing. Keep listening until closed.
+                if (session != _base.mf_MediaSession)
+                {
+                    oldSession = true;
                     return 0;
                 }
 
@@ -1290,12 +1305,16 @@ namespace ABX.MediaPlayer
 
                 if (_base != null)
                 {
-                    if (_base.mf_AwaitCallBack)
+                    // (these waits are for the current session's events)
+                    if (!oldSession)
                     {
-                        _base.mf_AwaitCallBack = false;
-                        _base.WaitForEvent.Set();
+                        if (_base.mf_AwaitCallBack)
+                        {
+                            _base.mf_AwaitCallBack = false;
+                            _base.WaitForEvent.Set();
+                        }
+                        _base.mf_AwaitDoEvents = false;
                     }
-                    _base.mf_AwaitDoEvents = false;
 
                     if (mediaEventType == MediaEventType.MESessionClosed)
                     {
