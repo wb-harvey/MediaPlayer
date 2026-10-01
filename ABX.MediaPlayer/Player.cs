@@ -2922,7 +2922,7 @@ namespace ABX.MediaPlayer
                         while (presTime == 0 && count > 0)
                         {
 #pragma warning disable IDE0059 // Unnecessary assignment of a value
-                            mf_Clock.GetCorrelatedTime(0, out presTime, out long sysTime);
+                            if (mf_Clock != null) mf_Clock.GetCorrelatedTime(0, out presTime, out long sysTime);
 #pragma warning restore IDE0059 // Unnecessary assignment of a value
                             if (--count > 0 && presTime == 0) System.Threading.Thread.Sleep(10);
                         }
