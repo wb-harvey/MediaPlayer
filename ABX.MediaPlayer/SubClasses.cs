@@ -1290,7 +1290,14 @@ namespace ABX.MediaPlayer
                                 FormCollection forms = Application.OpenForms;
                                 if (forms != null && forms.Count > 0) control = forms[0];
                             }
-                            if (control != null) control.BeginInvoke(CallEndOfMedia);
+                            // The end belongs to this session: by the time the UI thread
+                            // runs it, Stop or Play may have closed it and started another
+                            // one, which it must not end.
+                            IMFMediaSession endedSession = session;
+                            if (control != null) control.BeginInvoke(new MethodInvoker(() =>
+                            {
+                                if (_base != null && _base.mf_MediaSession == endedSession) CallEndOfMedia?.Invoke();
+                            }));
                             else _base.AV_EndOfMedia();
                         }
                     }
